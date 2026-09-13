@@ -22,6 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-header">
           <div className="header-inner">
             <Link className="wordmark" href="/">{site.title}</Link>
+            <span className="header-tagline" lang="en">
+              code is cheap, show me the talk <span aria-hidden="true">💬</span>
+            </span>
           </div>
         </header>
         <div className="page-shell"><main className="paper" id="main">{children}</main></div>
