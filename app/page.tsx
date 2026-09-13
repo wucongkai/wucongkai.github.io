@@ -7,7 +7,6 @@ export default async function Home() {
   return (
     <>
       <header className="page-heading">
-        <p className="eyebrow">PERSONAL WIKI</p>
         <h1>{site.title}</h1>
       </header>
       <section id="about">
