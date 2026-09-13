@@ -18,9 +18,9 @@ a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline
 .skip-link { position: fixed; z-index: 100; top: -6rem; left: 1rem; background: white; border: 1px solid var(--link); padding: .5rem 1rem; }
 .skip-link:focus { top: .75rem; }
 .site-header { position: sticky; top: 0; z-index: 30; background: rgb(255 255 255 / 88%); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
-.header-inner { max-width: 1080px; margin: auto; min-height: 65px; padding: .8rem 2rem; display: flex; gap: 2rem; align-items: center; }
-.wordmark { font-family: var(--heading-font); color: #172033; font-size: 1rem; white-space: nowrap; }
-.header-tagline { color: var(--muted); font-size: .95rem; line-height: 1.5; }
+.header-inner { min-height: 65px; padding: .8rem 2rem; display: flex; gap: 1.25rem; align-items: center; }
+.wordmark { flex-shrink: 0; font-family: var(--heading-font); color: #172033; font-size: 1rem; white-space: nowrap; }
+.header-tagline { min-width: 0; padding: .2rem 0 .2rem 1.25rem; border-left: 1px solid var(--line); color: var(--muted); font-size: .95rem; line-height: 1.5; }
 .page-shell { max-width: 1040px; padding: 0 1.5rem; margin: 0 auto; }
 .paper { max-width: 800px; min-height: calc(100svh - 150px); padding: 3.4rem 3rem 3.7rem; background: var(--paper); border: 1px solid var(--line); border-top: 0; box-shadow: 0 4px 16px rgb(15 23 42 / 4%); }
 .eyebrow { color: var(--muted); font-family: 'Fira Mono', monospace; letter-spacing: .15em; font-size: .75rem; margin: 0 0 .65rem; }
@@ -82,9 +82,9 @@ li::marker { color: #a1aabb; }
 .hljs-number, .hljs-built_in { color: #985127; }
 .hljs-comment { color: #697386; }
 @media (max-width: 767px) {
-  .header-inner { flex-wrap: wrap; gap: .45rem; padding: .7rem 1.25rem; }
-  .wordmark { width: 100%; font-size: .94rem; }
-  .header-tagline { font-size: .875rem; }
+  .header-inner { gap: .75rem; padding: .7rem 1.25rem; }
+  .wordmark { font-size: .94rem; }
+  .header-tagline { padding-left: .75rem; font-size: .875rem; }
   .page-shell { padding: 0; }
   .paper { padding: 2rem 1.3rem 3rem; border: 0; box-shadow: none; }
   h1 { font-size: 1.55rem; }
