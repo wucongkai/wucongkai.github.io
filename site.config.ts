@@ -5,7 +5,7 @@ export const site = {
   description: 'wucongkai 的个人主页：项目、文章与学习笔记。',
   url: 'https://wucongkai.github.io',
   github: 'https://github.com/wucongkai',
-  email: '',
+  email: 'hduwucongkai@163.com',
   bio: [
     '你好，我是 wucongkai。欢迎来到我的个人主页。',
     '这里用来整理项目、文章和学习笔记。关于我的更多介绍，之后会慢慢补充。',

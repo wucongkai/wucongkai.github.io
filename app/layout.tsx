@@ -22,12 +22,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-header">
           <div className="header-inner">
             <Link className="wordmark" href="/">{site.title}</Link>
-            <nav aria-label="主导航">
-              <Link href="/#about">关于</Link>
-              <Link href="/#projects">项目</Link>
-              <Link href="/#notes">笔记</Link>
-              <Link href="/#contact">联系</Link>
-            </nav>
           </div>
         </header>
         <div className="page-shell"><main className="paper" id="main">{children}</main></div>

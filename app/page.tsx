@@ -44,7 +44,7 @@ export default async function Home() {
         <h2>联系方式</h2>
         <ul className="contact-list">
           <li>GitHub：<a href={site.github}>{site.name}</a></li>
-          {site.email && <li>邮箱：<a href={`mailto:${site.email}`}>{site.email}</a></li>}
+          {site.email && <li>Email：<a href={`mailto:${site.email}`}>{site.email}</a></li>}
         </ul>
       </section>
     </>
