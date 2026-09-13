@@ -14,7 +14,10 @@ export type Post = {
 
 export async function getPosts(): Promise<Post[]> {
   const directory = path.join(process.cwd(), 'content/posts');
-  const filenames = await fs.readdir(directory);
+  const filenames = await fs.readdir(directory).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
   const posts = await Promise.all(filenames.filter((name) => name.endsWith('.mdx')).map(async (filename) => {
     const { data, content } = matter(await fs.readFile(path.join(directory, filename), 'utf8'));
     const slug = filename.slice(0, -4);
