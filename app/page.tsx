@@ -1,4 +1,5 @@
 import { site } from '@/site.config';
+import Image from 'next/image';
 import Link from 'next/link';
 import { formatDate, getPosts } from '@/lib/posts';
 
@@ -13,6 +14,14 @@ export default async function Home() {
         <h2>关于我</h2>
         {site.bio.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
       </section>
+      <figure className="home-illustration">
+        <Image
+          src="/images/thirst-for-knowledge.jpg"
+          alt="计算机经典教材背景的人像拼图，配文：年轻人，你渴望力量吗？"
+          width={1286}
+          height={770}
+        />
+      </figure>
       <section id="projects">
         <h2>项目</h2>
         <ul className="project-list">
