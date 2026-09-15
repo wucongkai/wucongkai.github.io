@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
-import type { ComponentProps } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { compileMDX } from 'next-mdx-remote/rsc';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
+import { compileArticle } from '@/lib/mdx.mjs';
 import { formatDate, getPost, getPosts } from '@/lib/posts';
 
 export const dynamicParams = false;
@@ -32,13 +29,7 @@ export default async function Note({ params }: Props) {
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) notFound();
-  const { content } = await compileMDX({
-    source: post.content,
-    options: { mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeHighlight] } },
-    components: {
-      table: (props: ComponentProps<'table'>) => <div className="table-scroll" role="region" aria-label="文章表格" tabIndex={0}><table {...props} /></div>,
-    },
-  });
+  const { content } = await compileArticle(post.content);
   return (
     <>
       <Link className="back-link" href="/#notes">← 返回文章列表</Link>

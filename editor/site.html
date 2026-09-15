@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>主页编辑 · 本地写作台</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/editor.css">
+  <script src="/site-editor.js" defer></script>
+</head>
+<body class="editor-body">
+  <a class="skip-link" href="#site-fields">跳到编辑区</a>
+  <header class="site-header"><div class="header-inner editor-header">
+    <a class="wordmark" href="https://wucongkai.github.io/" target="_blank" rel="noreferrer">wucongkai's Wiki</a>
+    <span class="local-badge"><span aria-hidden="true"></span><span id="editor-mode">本地写作台</span></span>
+    <a class="visit-site" href="https://wucongkai.github.io/" target="_blank" rel="noreferrer">访问网站 ↗</a>
+    <button id="logout" type="button" class="text-button" hidden>退出登录</button>
+  </div></header>
+  <main class="studio">
+    <div class="studio-heading"><div><p class="eyebrow">YOUR WORK, YOUR STORY</p><h1 id="section-heading">编辑主页</h1><p class="muted" id="section-description">在熟悉的排版中，更新你的介绍与作品。</p></div></div>
+    <nav class="section-nav" aria-label="编辑内容"><a href="/">文章 / 笔记</a><a href="/site?section=projects" data-section="projects">项目</a><a href="/site?section=about" data-section="about">关于我</a></nav>
+    <div id="connection-error" class="notice error" role="alert" hidden></div>
+    <form id="site-form">
+      <div class="workspace-bar">
+        <div><span id="section-label" class="tag">主页内容</span><span id="save-state" class="save-state" role="status">正在连接…</span></div>
+        <div class="action-buttons"><button id="save-site" type="submit" class="button secondary" disabled>保存到本地</button><button id="publish-site" type="button" class="button primary" disabled>保存并发布 ↗</button></div>
+      </div>
+      <div class="site-edit-layout">
+        <fieldset id="site-fields" disabled>
+          <legend class="sr-only">主页内容编辑</legend>
+          <div id="about-fields" hidden>
+            <div class="site-field-grid">
+              <label>姓名 / 昵称<input id="site-name" maxlength="200" required autocomplete="off"></label>
+              <label>网站标题<input id="site-title" maxlength="200" required autocomplete="off"></label>
+            </div>
+            <label>网站摘要 <span class="optional">用于搜索结果</span><textarea id="site-description" rows="2" maxlength="2000"></textarea></label>
+            <label>个人介绍<textarea id="site-bio" rows="9" placeholder="介绍一下你自己。&#10;&#10;空一行开始新的段落。"></textarea><span class="field-hint">纯文本介绍，空一行分段；与首页段落样式一致。</span></label>
+            <h2 class="site-subheading">联系方式</h2>
+            <label>GitHub 主页<input id="site-github" type="url" required maxlength="2000" placeholder="https://github.com/你的用户名"></label>
+            <label>联系邮箱 <span class="optional">留空后首页隐藏邮箱</span><input id="site-email" type="email" maxlength="254" autocomplete="email"></label>
+          </div>
+          <div id="projects-fields" hidden>
+            <div class="project-editor-heading"><h2>项目列表 <span id="project-count" class="count"></span></h2><button id="add-project" type="button" class="button secondary">＋ 添加项目</button></div>
+            <p class="site-form-hint">按这里的顺序展示在首页。移除项目后，可在保存前撤销。</p>
+            <div id="project-cards"></div>
+            <p id="projects-empty" class="site-empty" hidden>还没有项目。点击「添加项目」，介绍你的第一个作品。</p>
+            <div id="project-removed" class="discard-prompt" hidden><span id="removed-label" role="status"></span><button id="undo-remove" type="button" class="text-button">撤销移除</button></div>
+          </div>
+          <button id="discard-changes" type="button" class="text-button" hidden>放弃未保存修改，重新载入</button>
+          <div id="discard-prompt" class="discard-prompt" hidden><span>放弃当前未保存的修改？本地文件会保留。</span><button id="confirm-discard" type="button" class="button secondary">确定放弃</button><button id="cancel-discard" type="button" class="text-button">继续编辑</button></div>
+        </fieldset>
+        <div class="site-reading-pane"><div class="pane-label"><span>首页预览</span><span>与网站相同的排版</span></div><p id="preview-error" class="notice error" role="alert" hidden></p><iframe id="site-preview" title="主页内容实时预览" sandbox="allow-same-origin"></iframe></div>
+      </div>
+      <div class="writing-footnote"><span>⌘ / Ctrl + S 保存 · 修改会暂存到当前浏览器</span><span id="publish-hint">发布仅更新当前部分。</span></div>
+    </form>
+    <div id="message" class="notice" role="status" hidden></div>
+    <section id="publish-progress" class="publish-progress" aria-label="操作进度" hidden>
+      <div class="progress-title"><span id="progress-marker" class="progress-marker" aria-hidden="true"></span><strong id="publish-stage" role="status"></strong><span id="commit-id" class="count"></span></div>
+      <p id="publish-result" class="muted"></p>
+      <a id="actions-link" href="https://github.com/wucongkai/wucongkai.github.io/actions" target="_blank" rel="noreferrer" hidden>查看 GitHub 部署进度 ↗</a>
+      <details class="publish-details"><summary>查看发布日志</summary><pre id="publish-log"></pre></details>
+    </section>
+  </main>
+  <footer class="editor-footer"><span>把你的故事和作品，慢慢整理好。</span><span>Local workspace · GitHub Pages</span></footer>
+  <template id="project-template">
+    <article class="project-card">
+      <div class="project-card-heading"><h3></h3><div class="project-controls"><button type="button" class="text-button" data-action="up">上移</button><button type="button" class="text-button" data-action="down">下移</button><button type="button" class="text-button remove-project" data-action="remove">移除</button></div></div>
+      <label>项目名称<input data-field="name" required maxlength="200" placeholder="例如：个人 Wiki" autocomplete="off"></label>
+      <label>项目简介<textarea data-field="description" rows="3" maxlength="5000" placeholder="这个项目做什么，有什么值得分享的地方？"></textarea></label>
+      <div class="site-field-grid"><label>项目链接<input data-field="href" required maxlength="2000" placeholder="https://… 或 /站内路径"></label><label>项目状态<input data-field="label" maxlength="100" placeholder="例如：持续更新"></label></div>
+    </article>
+  </template>
+</body>
+</html>

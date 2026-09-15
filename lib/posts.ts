@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { readPostOrder, sortPosts } from './post-order.mjs';
 
 export type Post = {
   slug: string;
@@ -41,7 +42,7 @@ export async function getPosts(): Promise<Post[]> {
       content,
     };
   }));
-  return posts.filter((post) => !post.draft).sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug));
+  return sortPosts(posts.filter((post) => !post.draft), await readPostOrder(process.cwd()));
 }
 
 export async function getPost(slug: string): Promise<Post | undefined> {

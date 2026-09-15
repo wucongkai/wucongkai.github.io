@@ -6,3 +6,11 @@ out/
 .env*
 .DS_Store
 artifacts/
+.editor-trash/
+
+# Local logs and test output
+*.log
+coverage/
+
+# Keep sanitized configuration examples versioned
+!.env.example

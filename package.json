@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "editor": "node editor/server.mjs",
+    "editor:lan": "node editor/server.mjs --lan",
+    "test:editor": "node --test editor/*.test.mjs",
     "build": "next build",
     "typecheck": "tsc --noEmit"
   },

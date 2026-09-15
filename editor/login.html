@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>进入写作台 · wucongkai's Wiki</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/editor.css">
+  <script src="/login.js" defer></script>
+</head>
+<body class="editor-body">
+  <main class="login-card">
+    <p class="eyebrow">WUCONGKAI'S WIKI</p>
+    <h1>进入写作台</h1>
+    <p class="muted">输入运行写作台的电脑终端中显示的访问口令。</p>
+    <form id="login-form">
+      <label for="access-password">访问口令</label>
+      <input id="access-password" type="password" required autocomplete="current-password" maxlength="1024" autofocus>
+      <button id="login-button" type="submit" class="button primary">进入编辑器 →</button>
+    </form>
+    <p id="login-error" class="notice error" role="alert" hidden></p>
+    <p class="login-note">登录后可以编辑、保存和发布文章、项目与个人介绍。文件与 Git 推送均由运行写作台的电脑处理。</p>
+  </main>
+</body>
+</html>

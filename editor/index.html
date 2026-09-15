@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>本地写作台 · wucongkai's Wiki</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/editor.css">
+  <script src="/editor.js" defer></script>
+</head>
+<body class="editor-body">
+  <a class="skip-link" href="#post-title">跳到编辑区</a>
+  <header class="site-header">
+    <div class="header-inner editor-header">
+      <a class="wordmark" href="https://wucongkai.github.io/" target="_blank" rel="noreferrer">wucongkai's Wiki</a>
+      <span class="local-badge"><span aria-hidden="true"></span><span id="editor-mode">本地写作台</span></span>
+      <a class="visit-site" href="https://wucongkai.github.io/" target="_blank" rel="noreferrer">访问网站 ↗</a>
+      <button id="logout" type="button" class="text-button" hidden>退出登录</button>
+    </div>
+  </header>
+  <main class="studio">
+    <div class="studio-heading">
+      <div><p class="eyebrow">A SPACE FOR YOUR IDEAS</p><h1>让想法，慢慢成篇。</h1><p class="muted">在这里写作、预览，再把新的记录分享出去。</p></div>
+      <button id="new-post" type="button" class="button secondary" disabled>＋ 新建文章</button>
+    </div>
+    <div id="connection-error" class="notice error" role="alert" hidden></div>
+    <nav class="section-nav" aria-label="编辑内容"><a href="/" aria-current="page">文章 / 笔记</a><a href="/site?section=projects">项目</a><a href="/site?section=about">关于我</a></nav>
+    <div class="studio-layout">
+      <details class="library" open>
+        <summary>文章 / 笔记 <span id="post-count" class="count">—</span></summary>
+        <label class="sr-only" for="search">搜索文章</label>
+        <input id="search" type="search" placeholder="搜索标题、分类…" autocomplete="off">
+        <nav id="post-list" aria-label="选择文章"><p class="muted">正在读取文章…</p></nav>
+        <div class="order-actions">
+          <p id="order-state" class="order-state" role="status">未调整时按日期由新到旧排列。</p>
+          <button id="publish-order" type="button" class="button secondary" disabled>发布排序 ↗</button>
+          <p class="order-help">上移 / 下移自动保存到本地。点击「发布排序」更新首页顺序。</p>
+        </div>
+        <p class="library-footnote">未完成的内容会暂存到当前浏览器。<br>点击保存后，才会写入本地文件。</p>
+      </details>
+      <div class="workspace">
+        <form id="post-form">
+          <div class="workspace-bar">
+            <div><span id="post-state" class="tag">本地草稿</span><span id="save-state" class="save-state" role="status">正在连接…</span></div>
+            <div class="action-buttons">
+              <button id="delete-post" type="button" class="button danger" hidden disabled>删除文章</button>
+              <button id="save-post" type="submit" class="button secondary" disabled>保存到本地</button>
+              <button id="publish-post" type="button" class="button primary" disabled>保存并发布 ↗</button>
+            </div>
+          </div>
+          <section id="delete-confirm" class="delete-confirm" aria-labelledby="delete-heading" hidden>
+            <h2 id="delete-heading">删除这篇文章？</h2>
+            <p>即将删除「<strong id="delete-title"></strong>」。如果文章已提交到仓库，删除会自动提交、推送，并在部署完成后从网站下线。</p>
+            <p class="muted">删除前会保留本机备份；推送失败时，本地文章会保留以便重试。文章引用的图片会保留。</p>
+            <div class="delete-actions"><button id="confirm-delete" type="button" class="button danger">确认删除并同步</button><button id="cancel-delete" type="button" class="button secondary">取消</button></div>
+          </section>
+          <fieldset id="post-fields" disabled>
+            <legend class="sr-only">文章信息与正文</legend>
+            <div class="post-metadata">
+              <label class="sr-only" for="post-title">文章标题</label>
+              <input id="post-title" class="title-input" name="title" placeholder="给这篇文章起个名字…" required maxlength="200" autocomplete="off">
+              <div class="metadata-row">
+                <label class="slug-field">文章网址<input id="post-slug" name="slug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" title="小写英文字母、数字和连字符，例如 my-first-note" spellcheck="false" autocomplete="off"><span class="field-hint" id="slug-hint">首次保存后固定，用于 /notes/文章网址/</span></label>
+                <label>日期<input id="post-date" name="date" type="date" required></label>
+                <label>分类<input id="post-category" name="category" maxlength="100" placeholder="学习笔记" list="categories"><datalist id="categories"><option value="学习笔记"><option value="项目记录"><option value="生活随笔"></datalist></label>
+              </div>
+              <label class="description-label" for="post-description">摘要 <span class="optional">选填 · 显示在首页文章列表</span></label>
+              <textarea id="post-description" name="description" rows="2" maxlength="2000" placeholder="用一两句话，介绍这篇文章。"></textarea>
+              <button id="discard-changes" type="button" class="text-button" hidden>放弃未保存修改，重新载入</button>
+              <div id="discard-prompt" class="discard-prompt" hidden><span>放弃当前未保存的修改？本地文件会保留。</span><button id="confirm-discard" type="button" class="button secondary">确定放弃</button><button id="cancel-discard" type="button" class="text-button">继续编辑</button></div>
+            </div>
+            <div class="writing-bar">
+              <div class="format-tools" role="group" aria-label="插入 Markdown 格式">
+                <button type="button" data-format="heading" title="插入二级标题">H₂</button>
+                <button type="button" data-format="bold" title="加粗选中文字"><strong>B</strong></button>
+                <button type="button" data-format="link" title="插入链接">链接</button>
+                <button type="button" data-format="quote" title="插入引用">引用</button>
+                <button type="button" data-format="code" title="插入代码块">代码</button>
+                <button type="button" data-format="image" title="插入图片引用">图片</button>
+              </div>
+              <button id="toggle-preview" type="button" class="text-button" aria-pressed="true">收起预览</button>
+            </div>
+            <div class="writing-panes" id="writing-panes">
+              <div class="source-pane"><div class="pane-label"><label for="post-content">正文 · Markdown / MDX</label><span id="word-count">0 字</span></div><textarea id="post-content" name="content" spellcheck="false" placeholder="从一小段记录开始。&#10;&#10;## 一个小标题&#10;&#10;写下你的想法…" aria-describedby="writing-help"></textarea></div>
+              <div class="preview-pane" id="preview-pane"><div class="pane-label"><span>阅读预览</span><span>与网站相同的排版</span></div><p id="preview-error" class="notice error" role="alert" hidden></p><iframe id="preview" title="文章实时阅读预览" sandbox="allow-same-origin"></iframe></div>
+            </div>
+          </fieldset>
+          <div class="writing-footnote" id="writing-help"><span>⌘ / Ctrl + S 保存 · 支持表格、代码与折叠内容</span><span>发布会将当前文章设为公开。</span></div>
+        </form>
+        <div id="message" class="notice" role="status" hidden></div>
+        <section id="publish-progress" class="publish-progress" aria-label="操作进度" hidden>
+          <div class="progress-title"><span id="progress-marker" class="progress-marker" aria-hidden="true"></span><strong id="publish-stage" role="status">准备发布</strong><span id="commit-id" class="count"></span></div>
+          <p id="publish-result" class="muted"></p>
+          <a id="actions-link" href="https://github.com/wucongkai/wucongkai.github.io/actions" target="_blank" rel="noreferrer" hidden>查看 GitHub 部署进度 ↗</a>
+          <details class="publish-details"><summary>查看发布日志</summary><pre id="publish-log"></pre></details>
+        </section>
+        <details class="writing-guide">
+          <summary>写作小提示</summary>
+          <p>文章标题由页面自动显示，正文从二级标题开始即可。选中文字后，可以用上方按钮添加格式。</p>
+          <p>图片放在项目的 <code>public/images/</code> 文件夹中，点击「图片」插入引用。保存并发布只提交当前文章，新图片需要先提交到仓库。</p>
+          <p>新文章先保存到本地时是草稿。发布后，GitHub 会自动更新网站，通常需要几分钟。再次编辑已发布文章时，点击「保存到本地」不会立即改变线上页面。</p>
+          <p>选择已保存的文章后可点击「删除文章」。有未保存的编辑时，请先保存或放弃修改。删除备份保存在运行写作台的电脑的 <code>.editor-trash/</code> 文件夹中，不会推送到 GitHub。</p>
+        </details>
+      </div>
+    </div>
+  </main>
+  <footer class="editor-footer"><span>一篇一篇，记录自己的知识与生活。</span><span>Local workspace · GitHub Pages</span></footer>
+</body>
+</html>
