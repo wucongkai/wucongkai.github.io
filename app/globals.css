@@ -30,7 +30,7 @@ h1 { font-size: 1.8rem; line-height: 1.5; font-weight: 400; margin: 0; overflow-
 h2 { font-size: 1.2rem; line-height: 1.6; margin: 0 0 .8rem; font-weight: 700; }
 h3 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
 section + section { margin-top: 2.25rem; }
-.home-illustration { margin: 2.25rem 0; }
+.home-illustration { width: 85%; margin: 2.25rem auto; }
 .home-illustration img { display: block; width: 100%; height: auto; }
 p { margin: .55rem 0; }
 .muted { color: var(--muted); }
