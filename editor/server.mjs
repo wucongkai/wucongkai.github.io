@@ -218,7 +218,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     const port = Number(process.env.EDITOR_PORT || 4311);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('EDITOR_PORT 必须是 1–65535 之间的端口号。');
     const host = process.env.EDITOR_HOST || (process.argv.includes('--lan') ? '0.0.0.0' : '127.0.0.1');
-    if (!isIPv4(host)) throw new Error('EDITOR_HOST 请填写 IPv4 地址，例如 127.0.0.1、0.0.0.0 或 10.31.112.198。');
+    if (!isIPv4(host)) throw new Error('EDITOR_HOST 请填写 127.0.0.1、0.0.0.0 或本机网卡的 IPv4 地址。');
     const lan = host !== '127.0.0.1';
     const password = lan ? process.env.EDITOR_PASSWORD || randomBytes(12).toString('base64url') : '';
     const addresses = host === '0.0.0.0' ? lanAddresses() : [host];

@@ -117,12 +117,13 @@ test('HTTP editor requires same-origin session tokens and serializes writes whil
 test('LAN mode protects content, authenticates allowed IPs, saves after login and invalidates logout', async (t) => {
   const root = await fixture(t);
   const password = 'test-only-lan-password';
-  const server = await createEditorServer({ root, lan: true, password, addresses: ['10.31.112.198'] });
+  // TEST-NET-1 is reserved for examples; requests connect over loopback below.
+  const server = await createEditorServer({ root, lan: true, password, addresses: ['192.0.2.1'] });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   t.after(() => { server.closeAllConnections(); return new Promise((resolve) => server.close(resolve)); });
   const port = server.address().port;
   const transport = `http://127.0.0.1:${port}`;
-  const host = `10.31.112.198:${port}`;
+  const host = `192.0.2.1:${port}`;
   const origin = `http://${host}`;
   const request = (route, data, headers = {}) => new Promise((resolve, reject) => {
     // http.request preserves an explicit Host header when testing an allowed LAN IP over loopback.
