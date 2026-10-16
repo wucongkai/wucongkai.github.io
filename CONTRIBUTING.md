@@ -42,6 +42,9 @@ git push -u origin HEAD
 - 提交源码、文章、公共资源、配置、`package-lock.json` 和工作流。
 - 依赖、构建产物、日志、测试覆盖率、本地环境配置及 `.editor-trash/` 已忽略。
 - `.env.example` 可提交，但只能包含示例值；密码、令牌和私钥不能写入其中。
+- 文档中的设备地址使用 `<局域网IP>` 等占位符；测试中的地址使用文档专用地址段（如 `192.0.2.0/24`），不要提交真实设备地址。
+- 提交前检查作者信息，使用 GitHub Settings → Emails 提供的 `noreply` 邮箱，并在当前仓库通过 `git config --local user.email "你的 GitHub noreply 邮箱"` 设置。此设置只影响新提交；已有提交中的作者姓名和邮箱仍会公开。
+- `site.config.ts` 的联系邮箱会公开在仓库和网站中，只填写明确愿意公开的联系方式；不希望公开时将 `email` 留空。
 - `draft: true` 只控制网站展示；提交到公开仓库的草稿仍可被阅读。暂存前检查文章内容。
 - 已推送的错误用 `git revert <commit>` 创建撤销提交，然后运行检查并推送，保留历史。
 
