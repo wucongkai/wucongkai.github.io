@@ -17,5 +17,11 @@ export const site = {
       href: '/',
       label: '正在搭建',
     },
+    {
+      name: 'UU 远程 macOS 网络连接修复',
+      description: '记录 UU 远程在 macOS 特定网络下无法连接的排查过程，提供仅依赖 Python 标准库的本机代理脚本，通过 TCP DNS 与初始 TLS 记录分段恢复连接，保留证书验证，无需修改系统网络设置。',
+      href: 'https://github.com/wucongkai/uu-remote-macos-network-fix',
+      label: 'Python 工具',
+    },
   ],
 };
