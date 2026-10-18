@@ -7,7 +7,7 @@
 ## 实现方式
 
 ```text
-site.config.ts              → 姓名、简介、项目、联系方式
+site.config.ts              → 姓名、简介、项目、论文成果、联系方式
 content/posts/*.mdx         → 每一篇文章，构建时自动生成列表和页面
 app/globals.css             → 页面配色、字号、宽度、留白
 Next.js + MDX              → 生成 out/ 中的静态网站
@@ -114,9 +114,12 @@ npm run build
 - `name`、`title`：姓名和网站标题。
 - `bio`：个人介绍，数组中每一项是一段文字。
 - `projects`：项目名称、简介、链接和简短状态。
+- `publications`：论文标题、作者、期刊、卷号、文章号、发表日期、DOI、研究简介与实验结果；`highlightAuthor` 指定加粗显示的作者姓名。
 - `github`：GitHub 主页地址。
 - `email`：可公开的联系邮箱；留空就不显示。
 - `url`：网站正式地址，当前为 `https://wucongkai.github.io`。
+
+论文成果显示在「联系方式」上方，可通过 `/#publications` 直达。后续论文在 `site.config.ts` 的 `publications` 数组中按展示顺序添加，发表日期使用 `YYYY-MM-DD`；该栏目目前通过配置文件维护。
 
 项目和文章都使用你填写的内容。首页的当前个人介绍是一段可直接替换的中性占位文字，没有虚构职业、学历、成果或项目经历。
 

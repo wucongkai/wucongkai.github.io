@@ -49,6 +49,33 @@ export default async function Home() {
           </ul>
         ) : <p className="muted">第一篇笔记正在整理中。</p>}
       </section>
+      <section id="publications">
+        <h2>论文成果</h2>
+        <ul className="publication-list">
+          {site.publications.map((publication) => (
+            <li key={publication.doi}>
+              <h3 className="publication-title" lang="en">
+                <a href={`https://doi.org/${publication.doi}`}>{publication.title}</a>
+              </h3>
+              <p className="publication-authors" lang="en">
+                {publication.authors.map((author, index) => (
+                  <span key={author}>
+                    {index > 0 && ', '}
+                    {author === publication.highlightAuthor ? <strong>{author}</strong> : author}
+                  </span>
+                ))}
+              </p>
+              <p className="publication-meta">
+                <span lang="en"><cite>{publication.journal}</cite> {publication.volume}, {publication.articleNumber}</span>
+                <span>发表于 <time dateTime={publication.published}>{formatDate(publication.published)}</time></span>
+              </p>
+              <p className="publication-summary">{publication.description}</p>
+              <p className="publication-summary">{publication.results}</p>
+              <p className="publication-doi"><a href={`https://doi.org/${publication.doi}`}>DOI: {publication.doi}</a></p>
+            </li>
+          ))}
+        </ul>
+      </section>
       <section id="contact">
         <h2>联系方式</h2>
         <ul className="contact-list">
