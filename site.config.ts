@@ -2,14 +2,14 @@
 export const site = {
   name: 'wucongkai',
   title: "wucongkai's Wiki",
-  description: 'wucongkai 的个人主页：项目、文章、学习笔记与论文成果。',
+  description: 'wucongkai 的个人主页：项目、文章、学习笔记与科研成果。',
   url: 'https://wucongkai.github.io',
   github: 'https://github.com/wucongkai',
   email: 'hduwucongkai@163.com',
   bio: [
     '你好，我是 Congkai Wu（wucongkai），目前是杭州电子科技大学计算机科学方向的研究生，关注人工智能、软件开发与开源。',
     '我的研究涉及多模态融合与对话情绪识别，关注如何在融合过程中保留情绪变化与模态差异信息。我以第一作者在 Multimedia Systems 发表了 FAMF 相关论文。',
-    '研究之外，我也在做个人助手 Friday、视频图文笔记工具 KnowDelta 等项目，并把实际遇到的 macOS 网络连接问题整理成修复脚本。这个网站用来记录项目实践、学习笔记与论文成果。',
+    '研究之外，我也在做个人助手 Friday、视频图文笔记工具 KnowDelta 等项目，并把实际遇到的 macOS 网络连接问题整理成修复脚本。这个网站用来记录项目实践、学习笔记与科研成果。',
   ],
   projects: [
     {
