@@ -24,6 +24,18 @@ export const site = {
       href: 'https://github.com/wucongkai/uu-remote-macos-network-fix',
       label: 'Python 工具',
     },
+    {
+      name: 'Friday',
+      description: '个人助手实验，探索连接个人资料检索、邮件处理、求职申请与手机端操作，将常用操作整理成可复用流程，并在使用中持续记录和改进。',
+      href: 'https://github.com/wucongkai/Friday',
+      label: '个人助手实验',
+    },
+    {
+      name: 'KnowDelta',
+      description: '把 B 站或本地视频整理成带截图、字幕依据和时间戳的图文笔记，支持个人笔记库、视频对照阅读与图文导出，提供网页界面和 Python 命令行。',
+      href: 'https://github.com/wucongkai/KnowDelta',
+      label: '视频学习工具',
+    },
   ],
   publications: [
     {
