@@ -42,6 +42,13 @@ li::marker { color: #a1aabb; }
 .project-title > a { font-weight: 700; }
 .project-list p { margin: .15rem 0 0; color: #596579; font-size: .95rem; }
 .tag { color: #717b8d; font-size: .75rem; background: #f2f4f8; padding: .05rem .4rem; border-radius: 3px; }
+.publication-list { list-style: none; padding: 0; margin: 0; }
+.publication-list li + li { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.publication-title { margin: 0 0 .35rem; font-family: var(--body-font); font-size: 1.05rem; line-height: 1.65; }
+.publication-authors { margin: .2rem 0; font-size: .95rem; }
+.publication-meta { display: flex; flex-wrap: wrap; gap: .15rem 1rem; margin: .2rem 0 .6rem; color: var(--muted); font-size: .875rem; }
+.publication-summary { margin: .3rem 0; color: #596579; font-size: .95rem; }
+.publication-doi { margin: .5rem 0 0; font-size: .875rem; }
 .contact-list { margin: 0; }
 .site-footer { max-width: 1040px; padding: 1.4rem 1.5rem; margin: auto; display: flex; gap: 1rem; color: var(--muted); font-size: .8rem; }
 .site-footer a { color: inherit; }
