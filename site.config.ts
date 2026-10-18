@@ -48,7 +48,6 @@ export const site = {
       published: '2026-08-27',
       doi: '10.1007/s00530-026-02630-1',
       description: '提出用于对话情绪识别的频率感知多模态融合框架 FAMF，通过 FrequencyAdapter 与频率感知交叉注意力（FACA）保留模态差异、情绪突变等高频线索，缓解深层融合中的过度平滑。',
-      results: '在 IEMOCAP 和 MELD 数据集上的加权 F1 分别达到 73.05% 和 66.75%。',
     },
   ],
 };
