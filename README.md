@@ -7,7 +7,7 @@
 ## 实现方式
 
 ```text
-site.config.ts              → 姓名、简介、项目、论文成果、联系方式
+site.config.ts              → 姓名、简介、项目、科研成果、联系方式
 content/posts/*.mdx         → 每一篇文章，构建时自动生成列表和页面
 app/globals.css             → 页面配色、字号、宽度、留白
 Next.js + MDX              → 生成 out/ 中的静态网站
@@ -119,7 +119,7 @@ npm run build
 - `email`：可公开的联系邮箱；留空就不显示。
 - `url`：网站正式地址，当前为 `https://wucongkai.github.io`。
 
-论文成果显示在「联系方式」上方，可通过 `/#publications` 直达。后续论文在 `site.config.ts` 的 `publications` 数组中按展示顺序添加，发表日期使用 `YYYY-MM-DD`；该栏目目前通过配置文件维护。
+科研成果显示在「联系方式」上方，可通过 `/#publications` 直达。后续论文在 `site.config.ts` 的 `publications` 数组中按展示顺序添加，发表日期使用 `YYYY-MM-DD`；该栏目目前通过配置文件维护。
 
 首页的个人介绍根据 GitHub 公开资料和已发表论文整理，后续可按实际情况持续更新。
 

@@ -50,7 +50,7 @@ export default async function Home() {
         ) : <p className="muted">第一篇笔记正在整理中。</p>}
       </section>
       <section id="publications">
-        <h2>论文成果</h2>
+        <h2>科研成果</h2>
         <ul className="publication-list">
           {site.publications.map((publication) => (
             <li key={publication.doi}>
