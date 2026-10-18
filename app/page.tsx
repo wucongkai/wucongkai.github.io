@@ -70,7 +70,6 @@ export default async function Home() {
                 <span>发表于 <time dateTime={publication.published}>{formatDate(publication.published)}</time></span>
               </p>
               <p className="publication-summary">{publication.description}</p>
-              <p className="publication-summary">{publication.results}</p>
               <p className="publication-doi"><a href={`https://doi.org/${publication.doi}`}>DOI: {publication.doi}</a></p>
             </li>
           ))}

@@ -114,7 +114,7 @@ npm run build
 - `name`、`title`：姓名和网站标题。
 - `bio`：个人介绍，数组中每一项是一段文字。
 - `projects`：项目名称、简介、链接和简短状态。
-- `publications`：论文标题、作者、期刊、卷号、文章号、发表日期、DOI、研究简介与实验结果；`highlightAuthor` 指定加粗显示的作者姓名。
+- `publications`：论文标题、作者、期刊、卷号、文章号、发表日期、DOI 与研究简介；`highlightAuthor` 指定加粗显示的作者姓名。
 - `github`：GitHub 主页地址。
 - `email`：可公开的联系邮箱；留空就不显示。
 - `url`：网站正式地址，当前为 `https://wucongkai.github.io`。
