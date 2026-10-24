@@ -1,0 +1,490 @@
+---
+title: "RAG 检索算法：从 BM25、向量检索到 GraphRAG"
+date: "2026-10-24"
+description: "分清相关性、索引、融合与重排，理解十二类检索方法的原理、公式、适用场景和评估方式。"
+category: "AI · RAG"
+draft: false
+---
+
+RAG（Retrieval-Augmented Generation，检索增强生成）的基本过程是：**先从资料库检索证据，再让大模型依据证据回答。** 检索质量决定了模型能看到什么，生成模型仍需要正确理解证据及其限制。
+
+这组笔记分为三篇：本文讲检索算法；[框架与 GraphRAG 选型](/notes/rag-frameworks-and-graphrag/)讲工具分工；[Token 基础](/notes/llm-token-basics/)解释切块与上下文预算的计量单位。
+
+<h2 id="overview">先分清检索的五个层次</h2>
+
+“检索算法”并不是一个单一层次。BM25、HNSW、RRF 和 Reranker 可以同时出现在一个系统中，分别承担不同职责。
+
+| 层次 | 解决的问题 | 代表方法 |
+| --- | --- | --- |
+| 相关性计算 | 什么资料与问题相关？ | TF-IDF、BM25、稠密检索、SPLADE、ColBERT |
+| 索引与搜索 | 如何快速找到候选？ | 倒排索引、Flat、HNSW、IVF、PQ、DiskANN |
+| 结果融合 | 多路检索结果怎样合并？ | 加权融合、RRF |
+| 重排与筛选 | 哪些候选最值得交给模型？ | Cross-Encoder、LLM Reranker、MMR |
+| 查询与资料组织 | 检索什么，按什么粒度返回？ | Multi-Query、HyDE、多跳检索、父子检索、RAPTOR、GraphRAG |
+
+学习时可以先掌握 **BM25 → 稠密向量检索 → 混合检索 → Reranker**，再学习索引优化及复杂检索策略。
+
+本文目录：
+
+1. [词法检索：TF-IDF 与 BM25](#lexical)
+2. [稠密向量检索与相似度](#dense)
+3. [学习型稀疏检索：SPLADE](#splade)
+4. [多向量检索：ColBERT](#colbert)
+5. [向量索引：Flat、HNSW、IVF、PQ、DiskANN](#indexes)
+6. [混合检索与 RRF](#hybrid)
+7. [Reranker 重排序](#reranking)
+8. [MMR 与多样性](#mmr)
+9. [查询改写、反馈与多跳检索](#queries)
+10. [父子检索、窗口检索与 RAPTOR](#granularity)
+11. [图检索与 GraphRAG](#graph)
+12. [元数据过滤与结构化查询](#filters)
+13. [工程组合、评估与排错](#evaluation)
+
+以下用 $q$ 表示用户问题，$d$ 表示文档或文本块。
+
+<h2 id="lexical">1. 词法检索：TF-IDF 与 BM25</h2>
+
+用户问“数据库连接池耗尽怎么办”，词法检索主要寻找出现“数据库”“连接池”“耗尽”等词语的文本，再为不同词语和匹配情况赋予分数。
+
+### TF-IDF：常见于当前文档、少见于整个语料库的词更有区分度
+
+一个简化表达是：
+
+$$
+\begin{aligned}
+w(t,d)&=\operatorname{TF}(t,d)\operatorname{IDF}(t)\\
+\operatorname{IDF}(t)&\approx\log\frac{N}{df(t)}
+\end{aligned}
+$$
+
+其中，$\operatorname{TF}(t,d)$ 是词 $t$ 在文档中的频率，$N$ 是文档总数，$df(t)$ 是包含该词的文档数。
+
+“系统”“问题”可能到处出现，区分度较低；“连接池”出现得少，更能帮助定位资料。将查询和文档转换成 TF-IDF 向量后，可以用余弦相似度排序。不同实现的平滑、词频变换和归一化方式不同，以上公式是原理示意。参见 [scikit-learn 的 TF-IDF 说明](https://scikit-learn.org/stable/modules/feature_extraction.html#tfidf-term-weighting)。
+
+### BM25：考虑词频饱和与文档长度
+
+常见公式为：
+
+$$
+\operatorname{BM25}(q,d)=\sum_{t\in q}\operatorname{IDF}(t)
+\frac{f(t,d)(k_1+1)}{f(t,d)+k_1\left(1-b+b\frac{|d|}{\mathrm{avgdl}}\right)}
+$$
+
+$f(t,d)$ 是词频，$|d|$ 是文档长度，$\mathrm{avgdl}$ 是平均文档长度。重点是三个机制：
+
+- **稀有词权重大**：通过 IDF 衡量。
+- **词频会饱和**：“连接池”出现十次比一次更有帮助，但一百次不应再获得十倍优势。
+- **文档长度会被校正**：长文档更容易包含查询词，不能仅凭出现次数占优势。
+
+| 参数 | 作用 |
+| --- | --- |
+| $k_1$ | 控制词频饱和；值越大，重复出现通常还能带来更多加分 |
+| $b$ | 控制长度归一化；为 0 时不做该校正，为 1 时作用最充分 |
+
+BM25 的 IDF 也有不同变体，实际应以检索引擎实现为准。参见 [Elastic 对 BM25 的解释](https://www.elastic.co/blog/practical-bm25-part-2-the-bm25-algorithm-and-its-variables)。
+
+### 倒排索引负责加速
+
+```text
+连接池 → 文本块 2、8、15
+耗尽   → 文本块 8、21
+数据库 → 文本块 1、2、8、30
+```
+
+搜索时访问相关词的倒排列表，不必逐篇扫描全文。**倒排索引是数据结构，BM25 是评分方法。**
+
+词法检索速度快、容易解释，适合产品型号、错误码、函数名和专业术语。但如果资料写“可用连接全部被占用”，没有出现“连接池耗尽”，仅靠词面匹配就可能漏掉。
+
+中文还要注意分词、领域词典和中英文混排。对于 `ERR_CONN_104` 这样的编号，应配置适合的字段或精确匹配规则；BM25 本身不保证整个字符串严格一致。
+
+<h2 id="dense">2. 稠密向量检索：用向量表达语义</h2>
+
+稠密检索把问题和文本分别编码成向量，再比较向量相似度：
+
+$$
+\mathbf q=f_q(q),\qquad\mathbf d=f_d(d)
+$$
+
+$$
+\operatorname{score}(q,d)=\operatorname{sim}(\mathbf q,\mathbf d)
+$$
+
+文档向量可以离线计算，查询时只计算问题向量。这种结构通常叫 **Bi-Encoder（双编码器）**；两侧可以共享参数，也可以分别训练，但必须处在兼容的向量空间中。[DPR](https://arxiv.org/abs/2004.04906) 是代表方法之一。
+
+> 查询：“怎么解决连接池耗尽？”
+>
+> 文档：“当所有数据库连接都被占用时，可以排查未释放的连接……”
+
+即使措辞不同，合适的模型也可能给出较高相关性。
+
+| 度量 | 公式 | 排序方向 |
+| --- | --- | --- |
+| 余弦相似度 | $\frac{\mathbf q^\top\mathbf d}{\lVert\mathbf q\rVert\lVert\mathbf d\rVert}$ | 越大越相似 |
+| 点积 | $\mathbf q^\top\mathbf d$ | 越大越相似 |
+| 欧氏距离 | $\lVert\mathbf q-\mathbf d\rVert_2$ | 越小越相似 |
+
+当查询和文档向量都归一化为单位向量时：
+
+$$
+\lVert\mathbf q-\mathbf d\rVert_2^2=2-2\mathbf q^\top\mathbf d
+$$
+
+此时三种度量产生的排序一致。**没有归一化时不能随意替换**，应遵循模型的训练方式和使用说明。
+
+稠密检索适合同义表达、自然语言问题，以及模型支持范围内的跨语言匹配，但有几个限制：
+
+- 精确编号、数字、版本号的区分可能不足。
+- 领域术语超出训练分布时，效果可能下降。
+- “主题相似”不等于“包含答案”。
+- 一个向量需要压缩整个文本块，过长或多主题文本容易丢失细节。
+
+例如“支持退款”和“不支持退款”主题接近，但结论相反。向量相似度高不能证明事实正确或答案充分。
+
+<h2 id="splade">3. SPLADE：学习型稀疏检索</h2>
+
+TF-IDF 和 BM25 主要依赖词频统计；SPLADE 用神经模型生成以词表为维度、只有少量非零值的稀疏表示，同时学习词语权重与扩展词。
+
+```text
+原文：“汽车保养指南”
+
+稀疏权重示意：
+汽车：2.1
+保养：1.8
+维护：0.9
+车辆：0.7
+```
+
+以上数值仅作示意。查询和文档得到稀疏表示后，用点积评分：
+
+$$
+\operatorname{score}(q,d)=\sum_{t\in V}w_q(t)w_d(t)
+$$
+
+由于大多数维度为零，仍能利用倒排索引。它适合希望改善词汇不匹配、又保留稀疏索引能力的场景；代价是模型推理，以及扩展词数量带来的索引与搜索开销。参见 [SPLADE 论文](https://arxiv.org/abs/2107.05720)。
+
+**稀疏检索不一定只做原词匹配，向量检索也不一定就是稠密检索。**
+
+<h2 id="colbert">4. ColBERT：多向量与后期交互</h2>
+
+普通稠密检索通常将一个块压缩成一个向量。ColBERT 为查询和文档保留多个 token 的上下文向量，再进行 **Late Interaction（后期交互）**。
+
+其核心操作 MaxSim 可以写为：
+
+$$
+\operatorname{score}(q,d)=\sum_i\max_j\operatorname{sim}(\mathbf q_i,\mathbf d_j)
+$$
+
+对每个查询 token，在文档中找到最相似的 token 向量，再把最佳匹配分数相加。例如“连接池”“耗尽”“排查”可以分别寻找对应信息。
+
+文档侧向量仍能预计算，细粒度匹配通常需要更多存储及更复杂的搜索实现。参见 [ColBERT 论文](https://arxiv.org/abs/2004.12832)。
+
+| 结构 | 表示与交互方式 | 主要特点 |
+| --- | --- | --- |
+| 单向量 Bi-Encoder | 各自编码，比较整体向量 | 高效，但有信息压缩 |
+| ColBERT | 各自编码多个向量，再匹配 token | 匹配更细，存储和搜索更复杂 |
+| Cross-Encoder | 查询与文档一起输入模型 | 交互充分，逐对计算成本高 |
+
+<h2 id="indexes">5. 向量索引：怎样快速找到近邻</h2>
+
+已有一千万个文档向量，要找与查询最接近的 20 个，逐个比较可能很贵。**Embedding 模型决定语义如何表达，索引算法决定如何搜索这些向量。**
+
+### Flat：精确搜索基线
+
+直接比较查询与全部向量。若有 $N$ 个 $D$ 维向量，距离计算量大致为 $O(ND)$。它能得到指定度量下的精确最近邻，适合小规模数据、过滤后的较小集合，也适合作为 ANN（近似最近邻）评估基线。
+
+### HNSW：多层邻近图
+
+HNSW 的上层节点较少，帮助快速接近目标区域；下层更密，进行细致搜索。底层会维护一组候选，并非只沿一条路径前进。参见 [HNSW 论文](https://arxiv.org/abs/1603.09320)。
+
+| 参数 | 控制什么 | 调大后的常见影响 |
+| --- | --- | --- |
+| `M` | 图的连接数量，具体上限由实现决定 | 图更密，内存和构建成本增加，可能改善召回 |
+| `efConstruction` | 构建时的候选搜索范围 | 构建更慢，通常有助于图质量 |
+| `efSearch` / `ef` | 查询时的候选搜索范围 | 查询更慢，通常提高 ANN 召回 |
+
+`efSearch` 与最终返回数量 `top_k` 是不同参数；hnswlib 要求查询的 `ef` 不小于 `k`。参数名称、限制和效果要以具体实现为准。参见 [hnswlib 参数说明](https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md)。
+
+### IVF：先分组，再搜索部分组
+
+1. 聚类得到 `nlist` 个中心。
+2. 把文档向量分配到相应列表。
+3. 查询时选择最接近的 `nprobe` 个中心。
+4. 在这些列表中搜索。
+
+`nlist` 决定分组数，`nprobe` 决定搜索多少组。搜索更多组通常提高召回，也增加计算。IVF-Flat 在组内使用精确距离，但只搜索部分组时，整体仍可能漏掉真正的最近邻。
+
+### PQ：乘积量化与压缩
+
+PQ 把高维向量切成多个子向量，再用各自码本的编号表示。一个 768 维 float32 向量原始占用：
+
+$$
+768\times4=3072\text{ bytes}
+$$
+
+若切成 96 段、每段用一个 8 位编号表示，编码本体仅 96 字节，不包括码本、ID 和其他索引开销。
+
+压缩会引入距离误差。PQ 常与 IVF 组成 IVF-PQ，也可先用压缩向量召回，再用原始向量重算距离。Flat、IVF 与 PQ 的具体实现参见 [Faiss 索引文档](https://github.com/facebookresearch/faiss/wiki/Faiss-indexes)。
+
+### DiskANN：结合内存与 SSD
+
+DiskANN 通过适合磁盘访问的图搜索设计，把大量索引数据放在 SSD 上，降低大规模检索的内存压力。实际效果受硬件、配置和查询负载影响。参见 [DiskANN 论文介绍](https://www.microsoft.com/en-us/research/publication/diskann-fast-accurate-billion-point-nearest-neighbor-search-on-a-single-node/)。
+
+还有两类常见方法：
+
+| 方法 | 核心思路 | 适用边界 |
+| --- | --- | --- |
+| KD-Tree / Ball Tree | 递归划分空间，用几何界限剪枝 | 常用于较低维数据；不能直接假定适合几百维、上千维文本向量 |
+| LSH（局部敏感哈希） | 让相近向量更可能落入相同哈希桶 | 通过哈希表、候选量和近似误差取舍，需要按数据验证 |
+
+参见 [scikit-learn 最近邻说明](https://scikit-learn.org/stable/modules/neighbors.html)与 [Faiss 索引文档](https://github.com/facebookresearch/faiss/wiki/Faiss-indexes)。
+
+**ANN 努力找回的是向量空间中的最近邻。若模型已经把错误资料放得很近，提高索引精度无法修正语义判断。**
+
+<h2 id="hybrid">6. 混合检索：BM25、稠密检索与 RRF</h2>
+
+典型组合是 BM25 与稠密检索。例如“XG-730 的连接池耗尽怎么处理”：词法检索帮助保留型号匹配，稠密检索帮助找到“连接全部占用”“连接未释放”等不同表述。
+
+### 加权分数融合
+
+$$
+\operatorname{score}(d)=\alpha\widetilde s_{\mathrm{BM25}}(d)+(1-\alpha)\widetilde s_{\mathrm{dense}}(d)
+$$
+
+波浪线表示经过适当归一化或校准的分数。BM25 分数和余弦相似度通常不在同一尺度，直接相加可能使某一路不合理地占主导。加权方式便于精细控制，但分数分布会随查询、语料变化，需要验证归一化方案及权重。
+
+### RRF：根据排名融合
+
+$$
+\operatorname{RRF}(d)=\sum_i\frac{1}{c+\operatorname{rank}_i(d)}
+$$
+
+排名从 1 开始；文档未进入某一路的结果窗口时，该路不贡献分数。RRF 奖励在多路中排名靠前的文档，避免直接比较原始分数。
+
+一些实现默认 $c=60$，但它不是最终返回数量，也不是所有场景的最优值。RRF 的限制是丢掉分数差距：第一名领先第二名一点或很多，在排名层面都只差一位。参见 [Elastic RRF 文档](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/reciprocal-rank-fusion)。
+
+<h2 id="reranking">7. Reranker：对候选做细致判断</h2>
+
+```text
+百万级文本块
+    ↓ 初步召回
+几十到几百个候选
+    ↓ Reranker
+少量高相关证据
+```
+
+Cross-Encoder 将查询和候选文本一起输入模型：
+
+$$
+\operatorname{score}(q,d)=g([q;d])
+$$
+
+编码时就能交互，便于比较实体、条件、否定表达和限制，区分“讲同一主题”和“确实回答了问题”。文档无法预先编码成可直接用于该评分的独立向量，因此通常只在候选集上运行。参见 [Sentence Transformers 检索与重排说明](https://sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html)。
+
+LLM 也可对单篇、文档对或整个列表打分、排序，但需考虑成本、位置偏差与稳定性。
+
+- **重排无法补回固定候选池中没有的资料。**
+- 重排分数不一定经过概率校准，`0.8` 不一定表示“80% 相关”。
+
+<h2 id="mmr">8. MMR：相关性之外，还要考虑信息增量</h2>
+
+如果前十个候选中有八个重复解释“连接池是什么”，最终上下文可能缺少泄漏排查、超时设置、容量限制等信息。
+
+MMR（最大边际相关性）逐个选择文本，兼顾相关性与冗余：
+
+$$
+d^*=\arg\max_{d\in C\setminus S}\left[
+\lambda\operatorname{sim}(q,d)-(1-\lambda)\max_{s\in S}\operatorname{sim}(d,s)
+\right]
+$$
+
+$C$ 是候选集合，$S$ 是已选集合。第一项奖励相关性，第二项惩罚与已选文本重复；初始化时可先选最相关项，或把空集合的冗余项定义为 0。
+
+$\lambda$ 越接近 1 越看重相关性，越小越看重多样性。两种相似度的尺度也会影响取舍。它适合总结、比较、多方面原因分析，但过度追求多样性会引入不够相关的文本。参见 [Carbonell 与 Goldstein 的 MMR 论文](https://doi.org/10.1145/290941.291025)。
+
+<h2 id="queries">9. 查询改写、扩展、反馈与多跳检索</h2>
+
+这些方法改变“检索什么”，通常仍以 BM25 或稠密检索为底层。
+
+### Multi-Query：同一个需求的多种表达
+
+```text
+原问题：连接池耗尽怎么办？
+
+改写：数据库连接池没有可用连接的排查方法
+改写：连接未释放导致连接池耗尽如何处理
+改写：连接池等待超时的常见原因
+```
+
+分别检索后去重、融合、重排，可能找到单一表达漏掉的资料。风险是查询漂移，例如改成“如何提高数据库吞吐量”就扩大了范围。改写时应保留型号、版本、时间和否定条件。参见 [MultiQueryRetriever API](https://reference.langchain.com/python/langchain-classic/retrievers/multi_query/MultiQueryRetriever)。
+
+### HyDE：用假设性文档作为检索线索
+
+```text
+用户问题 → 生成假设性文档 → 编码文档 → 检索相近的真实资料
+```
+
+“答案式文本”可能比短问题更接近知识库文档的表达方式。假设性文档可能包含错误细节，**只能作为检索线索，不能直接成为最终回答的事实依据**。具体编号、最新事实和强领域约束也可能让这种方法偏离目标。参见 [HyDE 论文](https://arxiv.org/abs/2212.10496)。
+
+### RM3 与 Rocchio：利用反馈调整查询
+
+RM3 先检索，把排名靠前的文档当作“可能相关”，提取扩展词，再与原查询结合。这是伪相关反馈，不必依赖 LLM；但第一轮结果错误时，也可能强化错误方向。参见 [Pyserini 的 BM25 与 RM3 示例](https://github.com/castorini/pyserini/blob/master/docs/usage-search.md)。
+
+Rocchio 在向量空间中把查询向相关文档靠近、向不相关文档移远：
+
+$$
+\mathbf q'=\alpha\mathbf q+\beta\operatorname{mean}(D_{\mathrm{rel}})-\gamma\operatorname{mean}(D_{\mathrm{nonrel}})
+$$
+
+它可使用人工反馈，也可在相应设计中使用伪反馈。参见 [Stanford 信息检索课程的 Rocchio 讲义](https://web.stanford.edu/class/archive/cs/cs276a/cs276a.1032/handouts/lecture8.pdf)。
+
+### 查询分解与多跳检索
+
+问“产品 A 的数据库驱动是否满足其数据库版本要求”，可能要依次查：
+
+1. 产品 A 使用哪个驱动版本。
+2. 该驱动支持哪些数据库版本。
+3. 当前数据库实际版本是什么。
+
+Multi-Query 是“同一个需求的不同表达”，分解是“复杂问题的不同子问题”。如果下一步检索依赖上一步找到的事实，就需要迭代检索。[IRCoT](https://arxiv.org/abs/2212.10509) 是交替利用中间推导与检索结果的方法之一。
+
+多跳检索能处理跨文档依赖，也会增加延迟并累积前序错误，因此要控制迭代次数、核对关键事实，并判断证据是否充分。
+
+<h2 id="granularity">10. 父子检索、窗口检索与 RAPTOR</h2>
+
+块太大容易混入多个主题，块太小又可能缺少前提和限制。切块时的长度通常用 [token](/notes/llm-token-basics/) 衡量。
+
+### 父子检索：检索小块，返回大块
+
+```text
+父块：连接池故障排查这一节
+  ├─ 子块：连接泄漏
+  ├─ 子块：等待超时
+  └─ 子块：连接数上限
+```
+
+命中“连接泄漏”后，取回所属章节补全语境。“父块”可以是较大文本块，不一定是整篇文档。窗口检索则在命中句子或块后补充前后邻居。它们改变的是索引对象与返回对象。参见 [ParentDocumentRetriever API](https://reference.langchain.com/python/langchain-classic/retrievers/parent_document_retriever/ParentDocumentRetriever)。
+
+### RAPTOR：递归聚类与摘要树
+
+```text
+原始文本块 → 相近内容聚类 → 生成摘要 → 再聚类、再摘要 → 多层摘要树
+```
+
+细节问题可以利用底层原文，概括性问题可以利用上层摘要。检索可以访问不同层次，并非只能逐层向下。它适合长文档、跨段综合与不同抽象层次的问题。
+
+代价来自摘要生成与索引维护，摘要也可能遗漏或扭曲原文，因此需要保留回到原始证据的路径。参见 [RAPTOR 论文](https://arxiv.org/abs/2401.18059)。
+
+<h2 id="graph">11. 图检索：利用实体与关系组织证据</h2>
+
+```text
+系统 A → 依赖 → 服务 B
+服务 B → 使用 → 数据库 C
+数据库 C → 存在 → 漏洞 V
+```
+
+问“漏洞 V 可能影响哪些系统”，需要沿关系路径组合证据；仅找措辞相似的段落未必覆盖整条链。
+
+| 方法 | 核心作用 |
+| --- | --- |
+| 邻居扩展 / BFS | 从相关实体出发，查找若干跳内的关联 |
+| 路径查询 | 寻找满足关系类型与条件的路径 |
+| 个性化 PageRank | 从查询实体注入权重，通过图传播衡量关联 |
+| 社区与摘要检索 | 利用关联紧密的实体群及其摘要回答整体问题 |
+
+[HippoRAG](https://arxiv.org/abs/2405.14831) 将知识图谱与个性化 PageRank 用于检索。微软 [GraphRAG](https://microsoft.github.io/graphrag/) 的局部搜索结合实体、关系与原文，全局搜索借助社区报告处理资料库层面的综合问题。
+
+**HNSW 的图连接相近向量，知识图谱表达“依赖、属于、导致、使用”等语义关系。** 两者可以同时存在。GraphRAG 与 LangGraph 的分工及同类项目见[框架与 GraphRAG 选型](/notes/rag-frameworks-and-graphrag/)。
+
+<h2 id="filters">12. 元数据过滤与结构化查询</h2>
+
+对于“查找 2025 年发布、适用于 Linux 的产品 A 安装文档”，适合拆成：
+
+```text
+语义需求：安装文档
+明确条件：产品 = A
+          操作系统 = Linux
+          发布时间位于 2025 年
+```
+
+语义需求交给检索器，明确条件交给结构化字段。
+
+- **检索前或过程中约束**：在符合条件的集合中寻找近邻。
+- **检索后过滤**：先检索全库 top-k，再丢弃不符合条件的结果。
+
+后过滤可能导致结果不足，即使库中还有更多合格文档。具体实现需权衡过滤选择性、索引结构及成本。参见 [Elastic kNN 过滤说明](https://www.elastic.co/docs/solutions/search/vector/knn)。
+
+如果问题是“符合条件的订单总额是多少”，应考虑 SQL 等结构化查询完成聚合。只检索少量相似记录，通常不能保证统计完整。
+
+<h2 id="evaluation">13. 工程组合、评估与排错</h2>
+
+### 按问题特点选择起点
+
+| 问题特点 | 优先尝试的组合 |
+| --- | --- |
+| 型号、错误码、函数名、版本条件突出 | BM25 / 精确字段匹配 + 元数据过滤 |
+| 同义表达、自然语言问题较多 | 稠密检索 + Reranker |
+| 术语与口语化问题混合 | BM25 + 稠密检索 + RRF + Reranker |
+| 命中片段准确，但经常缺少前提 | 父子检索 / 窗口补全 |
+| 长文档与跨段总结 | 多粒度检索，评估 RAPTOR |
+| 实体关系、多跳关联、全库主题 | 评估图检索 / GraphRAG，并保留原文核验 |
+| 大规模向量搜索延迟高 | 在固定 embedding 下评估 HNSW、IVF、PQ、DiskANN |
+| 完整计数、求和、分组统计 | SQL 等结构化查询 |
+
+### 通用基线
+
+```text
+用户问题
+  ↓
+提取明确条件，必要时改写查询
+  ↓
+BM25 与稠密检索分别召回
+  ↓
+按文档 / 文本块标识对齐候选，RRF 融合
+  ↓
+Cross-Encoder 重排
+  ↓
+按需去冗余、补充上下文
+  ↓
+在 token 预算内组织证据
+  ↓
+大模型回答并引用来源
+```
+
+两路命中同一文本块时要合并其排名贡献，再按需处理近重复内容，避免提前去重丢失某一路的证据。
+
+可先尝试“两路各召回 80 条，融合后取 60 条重排，最终提供 6 条证据”。**这只是实验起点**，不是通用最优参数；应按问题复杂度、块长度、延迟和成本调整。
+
+### 分开检查三个阶段
+
+| 阶段 | 要回答的问题 | 常用检查 |
+| --- | --- | --- |
+| 候选召回 | 正确证据是否进入候选池？ | 相关性 Recall@k；另测 ANN Recall@k |
+| 排序与上下文 | 证据是否排前、被保留且没有丢失前提？ | MRR、nDCG、重复率、上下文证据覆盖 |
+| 最终回答 | 模型是否准确使用证据？ | 正确性、依据充分性、引用准确性、无答案时的表现 |
+
+相关性召回与 ANN 召回衡量的是两件事：
+
+$$
+\operatorname{Recall@k}=\frac{|\operatorname{Top}_k\cap R|}{|R|}
+$$
+
+$R$ 是标注相关文档集合，分母非零时该式才有定义。真实评测还要考虑标注覆盖度。
+
+$$
+\operatorname{ANN\ Recall@k}=\frac{|\operatorname{ApproxTop}_k\cap\operatorname{ExactTop}_k|}{k}
+$$
+
+ANN 对比应固定向量、距离度量、过滤条件和候选集合，假定至少有 $k$ 个可检索对象，并明确距离并列时的处理方式。
+
+MRR 重视首个相关结果的位置；nDCG 还能体现相关程度与排序位置的差异。参见 [Sentence Transformers 检索评估器](https://sbert.net/docs/package_reference/sentence_transformer/evaluation.html)与 [scikit-learn 的 nDCG 说明](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ndcg_score.html)。
+
+### 根据症状定位问题
+
+| 症状 | 优先检查 |
+| --- | --- |
+| 候选池里没有正确证据 | 解析、切块、查询表达、检索模型、召回范围 |
+| 候选池有证据，最终没有选中 | 融合、重排、去重、上下文预算 |
+| 精确向量搜索能找到，ANN 找不到 | 索引质量、搜索参数、过滤实现 |
+| 正确证据已经提供，回答仍错误 | 生成是否遵循证据，证据是否冲突或遗漏条件 |
+
+下一篇：[RAG 框架与 GraphRAG：分工、同类方案与选型](/notes/rag-frameworks-and-graphrag/)。

@@ -1,0 +1,166 @@
+---
+title: "RAG 框架与 GraphRAG：分工、同类方案与选型"
+date: "2026-10-24"
+description: "区分检索算法、存储引擎和应用框架，比较 LangChain、LangGraph 与 GraphRAG，并梳理图检索方案的优势和代价。"
+category: "AI · RAG"
+draft: false
+---
+
+**检索算法负责找资料，检索引擎负责存储和搜索，开发框架负责把流程串起来。** GraphRAG、LangChain、LangGraph 可以搭配使用，但承担不同职责。
+
+系列阅读：[检索算法详解](/notes/rag-retrieval-algorithms/) · 本文 · [Token 基础](/notes/llm-token-basics/)。
+
+本文目录：[三层技术地图](#layers) · [框架与平台](#frameworks) · [三者的区别](#comparison) · [GraphRAG 的用途与优势](#graphrag) · [同类方案](#alternatives) · [如何选择](#selection)。
+
+<h2 id="layers">1. 先分清算法、引擎与框架</h2>
+
+| 层次 | 代表技术 | 主要职责 |
+| --- | --- | --- |
+| 检索方法 | BM25、稠密检索、SPLADE、ColBERT | 判断问题与资料的相关性 |
+| 融合与重排 | RRF、Cross-Encoder、MMR | 合并候选，改善排序，减少冗余 |
+| 索引与搜索 | 倒排索引、HNSW、IVF、PQ | 加速候选查找，控制内存与精度 |
+| 存储与引擎 | FAISS、Milvus、Qdrant、pgvector、Elasticsearch | 为应用提供索引、查询或数据存储能力 |
+| 应用开发与编排 | LlamaIndex、LangChain、LangGraph、Haystack | 连接模型、数据、工具与执行流程 |
+| 可视化平台 / RAG 产品 | Dify、RAGFlow | 提供知识库、文档处理与应用搭建能力 |
+
+这张表按主要用途归类，不意味着产品只能做一件事。其中，**FAISS 是向量检索库；pgvector 是 PostgreSQL 的向量扩展；Milvus、Qdrant 是向量数据库；Elasticsearch 同时支持全文与向量检索。** 它们可以作为开发框架的底层组件。参见 [FAISS](https://github.com/facebookresearch/faiss)、[pgvector](https://github.com/pgvector/pgvector)、[Milvus](https://milvus.io/docs/overview.md)、[Qdrant](https://qdrant.tech/documentation/overview/) 与 [Elasticsearch](https://www.elastic.co/docs/solutions/search/vector/knn) 官方说明。
+
+例如，查询 `E1024` 时词项匹配很有价值；查询“登录后一直进不去”时，语义检索可能找到“身份验证失败”等不同表述。混合检索组合两者，再用重排挑选证据。原理与公式见[检索算法详解](/notes/rag-retrieval-algorithms/)。
+
+<h2 id="frameworks">2. 常见开发框架与平台</h2>
+
+| 框架 / 平台 | 主要定位 | 常见用途 |
+| --- | --- | --- |
+| [LlamaIndex](https://developers.llamaindex.ai/python/framework/) | 数据接入、索引、检索与应用组件 | 文档知识库、多种索引及复杂检索 |
+| [LangChain](https://docs.langchain.com/oss/python/langchain/overview) | 模型、工具、消息与 Agent 的应用抽象 | 快速构建助手，连接检索与其他工具 |
+| [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview) | 有状态的工作流与 Agent 编排 | 条件分支、循环、持久化、人工介入 |
+| [Haystack](https://docs.haystack.deepset.ai/docs/intro) | 组件与管线驱动的 AI 框架 | 组合检索器、排序器和生成器 |
+| [Dify](https://github.com/langgenius/dify) | 可视化 AI 应用开发平台 | 知识库问答、工作流、模型与工具集成 |
+| [RAGFlow](https://github.com/infiniflow/ragflow) | 文档处理与 RAG 引擎 | 文档解析、知识库与问答应用 |
+
+典型组合可以写成：
+
+```text
+LlamaIndex / LangChain 连接流程
+  → BM25 与向量检索召回
+  → RRF 融合
+  → Reranker 重排序
+  → 大模型根据证据回答
+```
+
+这不是必须同时安装的一套软件清单。简单应用也可以直接调用模型与检索接口，用普通代码串联。
+
+<h2 id="comparison">3. LangChain、LangGraph 与 GraphRAG 的区别</h2>
+
+| 对比项 | GraphRAG | LangChain | LangGraph |
+| --- | --- | --- | --- |
+| 本质 | 利用图结构增强 RAG 的方法家族；也指微软具体项目 | 大模型应用与 Agent 框架 | 有状态工作流与 Agent 编排框架 |
+| 核心问题 | 哪些知识与关系构成回答依据？ | 怎样连接模型、工具与数据？ | 下一步执行什么，怎样分支、循环与恢复？ |
+| 主要对象 | 实体、关系、原文、社区摘要 | 模型、消息、工具、Agent | 状态、节点、边、检查点 |
+| 典型用途 | 关联分析、知识问答、全局主题总结 | 快速组装助手与工具调用 | 多步骤任务、人工审批、复杂执行流程 |
+
+**GraphRAG 的“图”表达知识关系，LangGraph 的“图”表达执行流程。**
+
+### GraphRAG：沿知识关系组织资料
+
+```text
+公司 A ──投资──→ 公司 B ──采购──→ 公司 C
+```
+
+“公司 A 与公司 C 有什么间接联系”需要组合关系证据。微软 GraphRAG 还会组织实体社区并生成摘要，帮助回答整体性问题。它涵盖索引、检索和生成，可被封装成服务，也可以直接作为库使用；范围不只是一个检索接口。参见 [GraphRAG 官方说明](https://microsoft.github.io/graphrag/)。
+
+### LangChain：连接模型与工具，构建助手
+
+例如，把“查询 GraphRAG 知识库”封装成工具，供 Agent 按需调用。其他工具还可以查询数据库、访问搜索接口或进行计算。LangChain 提供这些组件的抽象和集成。参见 [LangChain 概览](https://docs.langchain.com/oss/python/langchain/overview)。
+
+### LangGraph：明确多步骤任务的执行方式
+
+```text
+理解问题 → 检索资料 → 判断证据是否充分
+                       ├─ 充分 → 生成答案
+                       └─ 不充分 → 改写问题 → 再次检索
+```
+
+节点表示操作，边决定路径，状态保存当前任务的信息。持久化、暂停和恢复、人工介入等能力，让多轮流程更可控。参见 [LangGraph 概览](https://docs.langchain.com/oss/python/langgraph/overview)。
+
+### 三者怎样配合
+
+LangChain 的 Agent 构建在 LangGraph 之上；直接使用 LangGraph 可以更细致地控制流程。LangGraph 也可独立使用，不要求使用 LangChain。GraphRAG 则是独立的知识检索方案，可成为工具或流程节点，并不依赖另外两个框架。以上定位依据各项目官方文档，功能会随版本演进。
+
+以企业研究助手为例：
+
+| 部分 | 分工 |
+| --- | --- |
+| GraphRAG | 从企业报告中检索公司关系、事实与主题摘要 |
+| LangChain | 连接模型，将知识库、数据库等能力封装为工具 |
+| LangGraph | 安排分析问题、调用工具、检查证据、补充查询、输出报告 |
+
+<h2 id="graphrag">4. GraphRAG 做什么，优势在哪里</h2>
+
+“GraphRAG”既可泛指图增强 RAG，也可特指微软开源项目。**以下社区摘要与全局搜索的介绍主要针对微软实现，不能套用到所有图检索方案。**
+
+### 从原文到回答
+
+```text
+原始资料
+  → 切分文本块
+  → 抽取实体与关系
+  → 组织图社区
+  → 生成社区报告 / 摘要
+  → 查询时选择相关实体、原文或社区报告
+  → 根据证据生成回答
+```
+
+微软实现提供局部搜索、全局搜索及结合社区信息扩展局部检索的 DRIFT 等模式。局部搜索偏向实体附近的证据，全局搜索借助社区报告综合资料库中的主题。参见 [GraphRAG 查询概览](https://microsoft.github.io/graphrag/query/overview/)。
+
+### 两类典型优势
+
+| 问题类型 | 示例 | 可能带来的帮助 |
+| --- | --- | --- |
+| 跨文档关联 | “这几家公司通过哪些项目或人物产生联系？” | 通过实体关系连接分散事实 |
+| 全局总结 | “上千份报告中，主要有哪些风险主题？” | 利用社区摘要扩大覆盖，而非只读取少量相似段落 |
+
+假设有一千份项目复盘：“项目 A 的负责人是谁”通常用普通检索即可；“失败项目有哪些共同的组织协作问题”更可能受益于关系结构和社区摘要。微软研究重点之一就是对资料库进行全局综合，参见 [GraphRAG 论文](https://arxiv.org/abs/2404.16130)。
+
+其他可用价值包括：围绕实体查邻居、组织多跳证据、在保留来源映射时追溯关系的原文出处。**这些能力不自动保证答案正确，仍需核验原文。**
+
+### 主要代价与限制
+
+- **索引成本**：实体抽取、关系整理与摘要生成会消耗时间及模型调用。
+- **抽取质量**：实体重名、别名、错误关系会影响后续检索。
+- **更新维护**：资料变化后，需要判断哪些关系和社区摘要需要重建。
+- **证据损失**：摘要可能遗漏条件或扭曲原文，要保留回溯路径。
+- **适用性**：精确事实、编号查找、完整统计不一定需要图；不能推断图方法总比基础 RAG 准确。
+
+是否值得引入，应通过自己的问题集比较质量、延迟、索引成本与更新成本。
+
+<h2 id="alternatives">5. 同类和相邻方案有哪些</h2>
+
+这些项目都能帮助实现图增强检索，但抽象层次和目标不同，不宜当成完全可互换的产品。
+
+| 方案 | 类型与核心思路 | 适合评估的情况 |
+| --- | --- | --- |
+| [Microsoft GraphRAG](https://microsoft.github.io/graphrag/) | 从文本构建知识图谱、社区与报告，支持多种查询模式 | 资料库全局主题分析、实体关联与综合问答 |
+| [LightRAG](https://github.com/HKUDS/LightRAG) | 结合图结构与向量检索，区分细节实体和较高层关系的检索需求 | 希望组合关系线索与文本召回，评估图增强问答 |
+| [HippoRAG](https://github.com/OSU-NLP-Group/HippoRAG) | 研究型框架，将知识图谱与个性化 PageRank 等机制结合 | 跨文档关联、多跳检索及相关研究实验 |
+| [Neo4j GraphRAG for Python](https://github.com/neo4j/neo4j-graphrag-python) | 基于 Neo4j 的知识图谱构建与检索工具库，提供向量、混合及图查询相关组件 | 已有 Neo4j 数据，或需要明确的图模型与查询控制 |
+| [LlamaIndex Property Graph Index](https://developers.llamaindex.ai/python/framework/module_guides/indexing/lpg_index_guide/) | 通用框架里的属性图索引与可组合检索器 | 在 LlamaIndex 应用中接入图数据、向量和其他检索方式 |
+
+RAPTOR 也是相邻路线：通过多层摘要改善长文档检索，但它组织的是摘要树，不是同样的实体关系图。[RAPTOR 论文](https://arxiv.org/abs/2401.18059)适合与 GraphRAG 一起比较“多粒度摘要如何帮助问答”。
+
+LightRAG 的名称、项目宣传或单一基准结果，都不能替代自己的成本与质量测试。HippoRAG 的后续版本也会演进，复现时应固定论文对应实现与版本。
+
+<h2 id="selection">6. 如何选择</h2>
+
+以下是按能力需求提出的工程起点，不是对所有项目的性能排名：
+
+| 当前最需要的能力 | 优先考虑 |
+| --- | --- |
+| 建立基础文档问答 | BM25 + 稠密检索 + 重排；按需使用 LlamaIndex、LangChain 或 Haystack |
+| 快速连接模型和工具 | LangChain |
+| 严格控制分支、循环、恢复与人工介入 | LangGraph |
+| 通过界面管理知识库与工作流 | Dify / RAGFlow |
+| 以实体关系组织资料 | Neo4j GraphRAG、LlamaIndex 属性图或其他图增强方案 |
+| 理解大量资料的共同主题 | 评估 Microsoft GraphRAG 的全局搜索，并与摘要树等方法比较 |
+
+先建立可测的基础检索管线，再针对“候选没有证据”“关系拼不起来”“全局覆盖不足”等具体症状引入复杂方法。评估维度与排错路径见[检索算法：工程组合与评估](/notes/rag-retrieval-algorithms/#evaluation)。
