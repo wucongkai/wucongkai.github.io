@@ -88,6 +88,23 @@ test('preview shares GFM, code highlighting and MDX details with the public site
   await assert.rejects(previewPost({ ...article(), content: '<details>' }));
 });
 
+test('preview renders inline and block formulas as native MathML while preserving code', async () => {
+  const content = String.raw`内联 $q_i$。
+
+$$
+\frac{a}{b}+\sum_{i=1}^{n}q_i
+$$
+
+` + '`$price`';
+  const html = await previewPost({ ...article(), content });
+  assert.match(html, /<math xmlns="http:\/\/www\.w3\.org\/1998\/Math\/MathML"/);
+  assert.match(html, /display="block"/);
+  assert.match(html, /<mfrac>/);
+  assert.match(html, /<msub>/);
+  assert.match(html, /<code>\$price<\/code>/);
+  assert.doesNotMatch(html, /katex-error|katex-html|language-math/);
+});
+
 test('HTTP editor requires same-origin session tokens and serializes writes while publishing', async (t) => {
   const root = await fixture(t);
   let finish;
