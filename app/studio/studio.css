@@ -110,6 +110,27 @@
   font-size: 0.78rem;
   margin-top: 1rem;
 }
+.studio label.studio-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  color: var(--ink);
+}
+.studio-remember input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+.studio-passwords {
+  display: grid;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+.studio-passwords p {
+  margin: 0;
+}
 .studio summary {
   cursor: pointer;
 }

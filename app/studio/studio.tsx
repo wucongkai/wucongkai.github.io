@@ -20,6 +20,7 @@ import {
 } from '@/editor/backups';
 import ArticleEditor from './article-editor';
 import SiteEditor from './site-editor';
+import Connection from './connection';
 
 type Row = { article: Article; published: boolean; cloud: boolean };
 type Section = 'articles' | 'projects' | 'about';
@@ -207,23 +208,23 @@ export default function Studio({ repository }: { repository: Repository }) {
     return result;
   }
   async function act(task: () => Promise<void>) {
-    if (working.current) return;
+    if (working.current) return false;
     working.current = true;
     setBusy(true);
     setMessage('');
     try {
       await task();
+      return true;
     } catch (e) {
       setMessage(errorText(e));
+      return false;
     } finally {
       working.current = false;
       setBusy(false);
     }
   }
-  async function connect(form: HTMLFormElement) {
-    const token = String(new FormData(form).get('token') || '');
-    form.reset();
-    await act(async () => {
+  async function connect(token: string) {
+    return act(async () => {
       const client = new GitHub(repository, token);
       try {
         const next = await refresh(client);
@@ -234,7 +235,7 @@ export default function Studio({ repository }: { repository: Repository }) {
               ? await loadDocument(client, next, next.slugs[0])
               : newArticle(),
           );
-        setMessage('已连接 GitHub。令牌仅在当前页面有效，刷新后需要重新输入。');
+        setMessage('已连接 GitHub，可以继续写作。');
       } catch (e) {
         client.disconnect();
         throw e;
@@ -242,7 +243,16 @@ export default function Studio({ repository }: { repository: Repository }) {
     });
   }
   function disconnect() {
-    if (!canLeave()) return;
+    if (working.current || siteBusy) return false;
+    if (
+      siteDirty &&
+      !window.confirm(
+        '主页修改尚未发布，已尝试暂存在当前浏览器。确定断开连接？',
+      )
+    )
+      return false;
+    // A failed browser backup must not prevent clearing the live credential.
+    const backedUp = backup();
     api?.disconnect();
     setApi(null);
     setList(null);
@@ -251,7 +261,12 @@ export default function Studio({ repository }: { repository: Repository }) {
     setDeployment('');
     setSection('articles');
     setSiteDirty(false);
-    setMessage('已断开连接。当前文章和本机暂存仍保留。');
+    setMessage(
+      backedUp
+        ? '已断开连接。当前文章和本机暂存仍保留。'
+        : '已断开连接，但浏览器暂存失败。当前文章仍在页面中，请导出后再关闭。',
+    );
+    return true;
   }
   async function open(slug: string, useDraft = true) {
     if (!canLeave() || !api) return;
@@ -444,73 +459,14 @@ export default function Studio({ repository }: { repository: Repository }) {
           <h1>让想法，慢慢成篇。</h1>
           <p className="muted">随时写作，保存在自己的 GitHub 仓库。</p>
         </div>
-        {api && (
-          <button disabled={busy} onClick={disconnect}>
-            断开连接
-          </button>
-        )}
       </div>
-      {!api && (
-        <form
-          className="studio-connect"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void connect(e.currentTarget);
-          }}
-        >
-          <h2>连接你的 GitHub 仓库</h2>
-          <p>
-            <a href={githubUrl} target="_blank" rel="noreferrer">
-              {repository.owner}/{repository.name}
-            </a>
-          </p>
-          <label htmlFor="github-token">GitHub 细粒度访问令牌</label>
-          <div className="studio-connect-row">
-            <input
-              id="github-token"
-              name="token"
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              required
-              placeholder="github_pat_…"
-              disabled={busy}
-            />
-            <button className="primary" disabled={busy}>
-              {busy ? '连接中…' : '连接写作台'}
-            </button>
-          </div>
-          <p className="muted">
-            令牌只保存在当前页面内存中，刷新或断开后需重新输入。页面入口公开，写入由
-            GitHub 权限控制。
-          </p>
-          <details>
-            <summary>第一次使用：如何创建令牌</summary>
-            <ol>
-              <li>
-                打开{' '}
-                <a
-                  href="https://github.com/settings/personal-access-tokens/new"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  GitHub 令牌设置
-                </a>
-                ，选择仓库所有者和有效期。
-              </li>
-              <li>
-                Repository access 选择 Only select repositories，仅选此 Wiki
-                仓库。
-              </li>
-              <li>
-                Repository permissions 将 Contents 设为 Read and write；Actions
-                设为 Read-only 可显示部署进度。
-              </li>
-              <li>生成后粘贴到上方。不要把令牌写入文章、代码或聊天。</li>
-            </ol>
-          </details>
-        </form>
-      )}
+      <Connection
+        repository={repository}
+        connected={api !== null}
+        busy={busy || siteBusy}
+        onConnect={connect}
+        onDisconnect={disconnect}
+      />
       <p role="status" className="studio-message">
         {message}
       </p>
