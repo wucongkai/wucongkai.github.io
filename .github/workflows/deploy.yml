@@ -3,6 +3,8 @@ name: Deploy personal homepage
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'content/drafts/**'
   workflow_dispatch:
 
 permissions:
