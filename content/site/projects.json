@@ -1,0 +1,26 @@
+[
+  {
+    "name": "个人 Wiki",
+    "description": "这个网站。把零散的记录整理成可以持续更新的个人知识库。",
+    "href": "/",
+    "label": "正在搭建"
+  },
+  {
+    "name": "UU 远程 macOS 网络连接修复",
+    "description": "记录 UU 远程在 macOS 特定网络下无法连接的排查过程，提供仅依赖 Python 标准库的本机代理脚本，通过 TCP DNS 与初始 TLS 记录分段恢复连接，保留证书验证，无需修改系统网络设置。",
+    "href": "https://github.com/wucongkai/uu-remote-macos-network-fix",
+    "label": "Python 工具"
+  },
+  {
+    "name": "Friday",
+    "description": "个人助手实验，探索连接个人资料检索、邮件处理、求职申请与手机端操作，将常用操作整理成可复用流程，并在使用中持续记录和改进。",
+    "href": "https://github.com/wucongkai/Friday",
+    "label": "个人助手实验"
+  },
+  {
+    "name": "KnowDelta",
+    "description": "把 B 站或本地视频整理成带截图、字幕依据和时间戳的图文笔记，支持个人笔记库、视频对照阅读与图文导出，提供网页界面和 Python 命令行。",
+    "href": "https://github.com/wucongkai/KnowDelta",
+    "label": "视频学习工具"
+  }
+]

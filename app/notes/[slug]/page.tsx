@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { compileArticle } from '@/lib/mdx.mjs';
+import { renderArticle } from '@/lib/markdown';
 import { formatDate, getPost, getPosts } from '@/lib/posts';
 
 export const dynamicParams = false;
@@ -29,7 +29,7 @@ export default async function Note({ params }: Props) {
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) notFound();
-  const { content } = await compileArticle(post.content);
+  const content = await renderArticle(post.content);
   return (
     <>
       <Link className="back-link" href="/#notes">← 返回文章列表</Link>
@@ -39,7 +39,7 @@ export default async function Note({ params }: Props) {
           <h1>{post.title}</h1>
           <time className="article-date" dateTime={post.date}>{formatDate(post.date)}</time>
         </header>
-        <div className="prose">{content}</div>
+        <div className="prose" dangerouslySetInnerHTML={{ __html: content }} />
       </article>
       <div className="article-end"><Link href="/#notes">← 更多文章 / 笔记</Link></div>
     </>

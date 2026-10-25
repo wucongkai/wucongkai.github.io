@@ -21,6 +21,10 @@ a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline
 .header-inner { min-height: 65px; padding: .8rem 2rem; display: flex; gap: 1.25rem; align-items: center; }
 .wordmark { flex-shrink: 0; font-family: var(--heading-font); color: #172033; font-size: 1rem; white-space: nowrap; }
 .header-tagline { min-width: 0; padding: .2rem 0 .2rem 1.25rem; border-left: 1px solid var(--line); color: var(--muted); font-size: .95rem; line-height: 1.5; }
+.studio-link { margin-left: auto; flex-shrink: 0; padding: .3rem .7rem; border: 1px solid var(--line); border-radius: 5px; font-size: .85rem; background: var(--paper); }
+.page-shell:has(.studio) { max-width: 1500px; }
+.paper:has(.studio) { max-width: none; padding: 2rem; }
+@media (max-width: 520px) { .header-tagline { display: none; } .paper:has(.studio) { padding: 1.2rem; } }
 .page-shell { max-width: 1040px; padding: 0 1.5rem; margin: 0 auto; }
 .paper { max-width: 800px; min-height: calc(100svh - 150px); padding: 3.4rem 3rem 3.7rem; background: var(--paper); border: 1px solid var(--line); border-top: 0; box-shadow: 0 4px 16px rgb(15 23 42 / 4%); }
 .eyebrow { color: var(--muted); font-family: 'Fira Mono', monospace; letter-spacing: .15em; font-size: .75rem; margin: 0 0 .65rem; }
