@@ -25,7 +25,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="header-tagline" lang="en">
               code is cheap, show me the talk <span aria-hidden="true">💬</span>
             </span>
-            <Link className="studio-link" href="/studio/" prefetch={false}>写作台 ↗</Link>
           </div>
         </header>
         <div className="page-shell"><main className="paper" id="main">{children}</main></div>
