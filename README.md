@@ -1,10 +1,10 @@
 # wucongkai 的个人 Wiki
 
-Next.js 静态网站，文章和主页资料保存在 GitHub，GitHub Actions 检查通过后部署到 GitHub Pages。首页右上角的 **写作台** 打开 `/studio/`，换一台电脑也可以继续写作，无需本地 Node 服务或数据库。
+Next.js 静态网站，文章和主页资料保存在 GitHub，GitHub Actions 检查通过后部署到 GitHub Pages。通过 [写作台链接](https://wucongkai.github.io/studio/) 直接进入 `/studio/`，换一台电脑也可以继续写作，无需本地 Node 服务或数据库。
 
 ## 日常写作
 
-1. 打开网站右上角的「写作台」。
+1. 打开 [写作台](https://wucongkai.github.io/studio/)，建议将链接加入浏览器书签。
 2. 输入仅授权此仓库的 GitHub 细粒度访问令牌。自己的电脑可勾选「记住此设备（密码保护）」并设置设备密码；以后刷新或重新打开，输入设备密码即可解锁。未勾选时，令牌只在当前页面内存中保存。
 3. 选择文章，或新建文章；右侧可以预览表格、公式、代码高亮和折叠内容。
 4. **保存云端草稿**：保存到仓库 `content/drafts/`，不会改变公开文章。换设备连接后，列表会显示这些草稿。`⌘ / Ctrl + S` 也执行此操作。
